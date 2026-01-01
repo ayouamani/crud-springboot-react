@@ -27,6 +27,6 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ECR_REGISTRY/crud-frontend:latest
+          image: __FRONTEND_IMAGE__
           ports:
             - containerPort: 80

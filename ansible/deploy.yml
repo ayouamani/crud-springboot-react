@@ -1,10 +1,12 @@
-- name: Deploy CRUD stack to Kubernetes
+- name: Deploy CRUD to EKS (NodePort, no ingress)
   hosts: localhost
   connection: local
   gather_facts: false
 
   vars:
     namespace: "{{ namespace | default('crud') }}"
+    backend_image: "{{ backend_image }}"
+    frontend_image: "{{ frontend_image }}"
 
   tasks:
     - name: Create namespace
@@ -18,14 +20,22 @@
         namespace: "{{ namespace }}"
         src: "k8s/mysql.yml"
 
-    - name: Deploy Backend
-      kubernetes.core.k8s:
-        state: present
-        namespace: "{{ namespace }}"
-        src: "k8s/backend.yml"
+    - name: Render backend manifest
+      set_fact:
+        backend_yaml: "{{ lookup('file', 'k8s/backend.yml') | replace('__BACKEND_IMAGE__', backend_image) }}"
 
-    - name: Deploy Frontend
+    - name: Apply backend
       kubernetes.core.k8s:
         state: present
         namespace: "{{ namespace }}"
-        src: "k8s/frontend.yml"
+        definition: "{{ backend_yaml | from_yaml_all | list }}"
+
+    - name: Render frontend manifest
+      set_fact:
+        frontend_yaml: "{{ lookup('file', 'k8s/frontend.yml') | replace('__FRONTEND_IMAGE__', frontend_image) }}"
+
+    - name: Apply frontend
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        definition: "{{ frontend_yaml | from_yaml_all | list }}"

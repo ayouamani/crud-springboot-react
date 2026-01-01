@@ -1,0 +1,59 @@
+name: 03 - Deploy to EKS with Ansible (NodePort)
+
+on:
+  push:
+    branches: [ "master" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-3
+  EKS_CLUSTER_NAME: crud-demo
+  NAMESPACE: crud
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Configure kubectl for EKS
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+          kubectl get nodes
+
+      - name: Install Ansible + kubernetes.core
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible kubernetes
+          ansible-galaxy collection install kubernetes.core
+
+      - name: Deploy with Ansible using commit tag
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::7}
+          BACKEND_IMAGE=${{ steps.ecr.outputs.registry }}/crud-backend:${IMAGE_TAG}
+          FRONTEND_IMAGE=${{ steps.ecr.outputs.registry }}/crud-frontend:${IMAGE_TAG}
+
+          ansible-playbook -i ansible/inventories/prod.yml ansible/deploy.yml \
+            -e namespace=${NAMESPACE} \
+            -e backend_image=${BACKEND_IMAGE} \
+            -e frontend_image=${FRONTEND_IMAGE}
+
+      - name: Show resources
+        run: |
+          kubectl get pods -n $NAMESPACE
+          kubectl get svc -n $NAMESPACE
