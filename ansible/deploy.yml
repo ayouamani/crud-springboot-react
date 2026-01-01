@@ -1,0 +1,31 @@
+- name: Deploy CRUD stack to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    namespace: "{{ namespace | default('crud') }}"
+
+  tasks:
+    - name: Create namespace
+      kubernetes.core.k8s:
+        state: present
+        src: "k8s/namespace.yml"
+
+    - name: Deploy MySQL
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        src: "k8s/mysql.yml"
+
+    - name: Deploy Backend
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        src: "k8s/backend.yml"
+
+    - name: Deploy Frontend
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ namespace }}"
+        src: "k8s/frontend.yml"
