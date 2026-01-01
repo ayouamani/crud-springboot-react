@@ -1,0 +1,47 @@
+name: 01 - Build & Push Backend
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-3
+  BACKEND_REPO: crud-backend
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Récupérer le code du repo
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Authentification AWS via OIDC (sans clés)
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3️⃣ Login Docker vers ECR
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4️⃣ Build + Push image backend
+      - name: Build & Push backend image
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::7}
+
+          docker build \
+            -t ${{ steps.ecr.outputs.registry }}/${BACKEND_REPO}:${IMAGE_TAG} \
+            ./backend/crud-application
+
+          docker push \
+            ${{ steps.ecr.outputs.registry }}/${BACKEND_REPO}:${IMAGE_TAG}
