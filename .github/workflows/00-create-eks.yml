@@ -1,0 +1,40 @@
+name: 00 - Create EKS Cluster (one-time)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-3
+  CLUSTER_NAME: crud-dev
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install eksctl + kubectl
+        run: |
+          curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz
+          sudo mv eksctl /usr/local/bin/
+          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          eksctl version
+          kubectl version --client
+
+      - name: Create EKS cluster
+        run: |
+          eksctl create cluster \
+            --name $CLUSTER_NAME \
+            --region $AWS_REGION \
+            --nodes 1 \
+            --node-type t3.medium \
+            --managed
