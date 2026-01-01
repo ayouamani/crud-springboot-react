@@ -10,7 +10,7 @@ permissions:
 
 env:
   AWS_REGION: eu-west-3
-  EKS_CLUSTER_NAME: crud-demo
+  EKS_CLUSTER_NAME: crud-dev
   NAMESPACE: crud
 
 jobs:
