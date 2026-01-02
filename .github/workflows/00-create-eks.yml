@@ -21,6 +21,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Who am I (debug)
+        run: aws sts get-caller-identity
+
+      - name: List clusters BEFORE
+        run: aws eks list-clusters --region $AWS_REGION
+
       - name: Install eksctl + kubectl
         run: |
           curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz
@@ -38,3 +44,6 @@ jobs:
             --nodes 1 \
             --node-type t3.medium \
             --managed
+
+      - name: List clusters AFTER
+        run: aws eks list-clusters --region $AWS_REGION
