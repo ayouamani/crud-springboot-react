@@ -1,0 +1,42 @@
+name: 00 - Grant EC2 Role Access to EKS (one-time)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-3
+  CLUSTER_NAME: crud-dev
+  EC2_ROLE_ARN: arn:aws:iam::067773914501:role/EC2ServerRole
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install eksctl
+        run: |
+          curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz
+          sudo mv eksctl /usr/local/bin/
+          eksctl version
+
+      - name: Grant EC2 role admin access
+        run: |
+          eksctl create iamidentitymapping \
+            --cluster $CLUSTER_NAME \
+            --region $AWS_REGION \
+            --arn $EC2_ROLE_ARN \
+            --group system:masters \
+            --username ec2-admin
+
+      - name: Verify mapping
+        run: |
+          eksctl get iamidentitymapping --cluster $CLUSTER_NAME --region $AWS_REGION
