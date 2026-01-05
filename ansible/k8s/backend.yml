@@ -7,7 +7,8 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 8080
+    - name: http
+      port: 8080
       targetPort: 8080
 ---
 apiVersion: apps/v1
@@ -31,8 +32,12 @@ spec:
             - containerPort: 8080
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://mysql:3306/cruddb?useSSL=false&allowPublicKeyRetrieval=true
+              value: jdbc:mysql://mysql:3306/cruddb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
             - name: SPRING_DATASOURCE_USERNAME
               value: crud
             - name: SPRING_DATASOURCE_PASSWORD
               value: crudpass
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+              value: org.hibernate.dialect.MySQLDialect
